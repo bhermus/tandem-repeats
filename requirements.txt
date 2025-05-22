@@ -1,0 +1,12 @@
+wget
+transformers
+torch
+torchvision
+torchaudio
+pandas
+numpy==1.24.1
+scikit-learn
+matplotlib
+ipywidgets
+sentencepiece
+datasets
