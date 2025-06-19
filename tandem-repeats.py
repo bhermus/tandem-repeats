@@ -210,19 +210,41 @@ class TandemTrainer:
 def main():
     set_cuda()
 
-    tokenizer = transformers.AutoTokenizer.from_pretrained("PoetschLab/GROVER")
-    model = transformers.AutoModelForSequenceClassification.from_pretrained("PoetschLab/GROVER")
+    max_size = 3000
+    output_dir = "./results"
 
     try:
         dataset = pd.read_csv("dna_dataset.csv")
     except FileNotFoundError:
         non_repeats = get_non_repeats("output.txt")
         repeats = get_repeats("VNTRseek_NA19240_ERX283215.vcf")
-        dataset = make_dataset(non_repeats, repeats, max_size=3000)
+        dataset = make_dataset(non_repeats, repeats, max_size=max_size)
+        dataset.to_csv("dna_dataset.csv")
+
+    if os.path.exists(os.path.join(output_dir, "model.safetensors")):
+        print("Loading previously trained model...")
+        tokenizer = AutoTokenizer.from_pretrained(output_dir)
+        model = AutoModelForSequenceClassification.from_pretrained(output_dir)
+    else:
+        print("Training new model...")
+        tokenizer = AutoTokenizer.from_pretrained("PoetschLab/GROVER")
+        model = AutoModelForSequenceClassification.from_pretrained("PoetschLab/GROVER")
 
     tt = TandemTrainer(model=model, tokenizer=tokenizer, dataset=dataset)
-    tt.preprocess()
-    tt.train()
+
+    if not os.path.exists(os.path.join(output_dir, "model.safetensors")):
+        tt.preprocess()
+        tt.train()
+        tt.save_model()
+
+    sample_sequences = ["ACTGGAGGGTCTGCAGGCAGGTACCTGGGTGCTGGAGGGTCTGCAGGCAGGTACCTGGG",
+                        "TCTCTACAGCGTGTGGACAGCGCGCGCCCTCTACAGCGTGTGGGTGCGCGTGCTCTCTACAGCGTGTGGATGCGTGTGCCCTCTACAGTGTGTGGATGTGTGTGC",
+                        "TTATTACATATGGTTTATTACCATATGTAATATTACATATTACATATGGTTTATTACCATATGTAATATTACATATTACATATGGTTTATTACCATATGTAATATTACATATTACATATGGTTTATTACCATATGTAATATTACATATTACATATGGTTTATTACATAT",
+                        "TTTGGGCCC",
+                        "GGGTGTGGGGTAGCCCACCTACAGTACCATGCATATATATTATAAATTTTTAAACTGTGTGCACTTATGCTAACTGCTGGAAGGTTTAATTGCTTCCTTGATATTTTCAGCATGTCAGAAATCTCCACCTCCTAGTCCTTAGATTTTAGATTGTAACAAATTGCAGCCAAACAGCTAAGGTTTGAATTCTTATTCTTTATTTATATATGTTATAGATTTTACTGTCAATAAAACTAGGATAATT",
+                        "AGATCATCTTCAAGCTGTATTTTTGTATCTACATATAGTGACCTTCAAAGGGATTCATTATATTTCATCTTGTGTATTGTATGTTTGACAAGTATATTTGTTTTGATGGTTCACTGATTTCAGTCCTTGGTATTTACCTCAAGTTCATTCTGGGATCTGGTTCTATTCATACACATTATCATAGCTATTTGGAAGCTTACTTGAAATCTTCTCTTTGAAAGAAATATCAGCCTATCTCAGGTGTGAGCTTCAGTGTAACATTGATGTGAGTGAAATAGTATGTTATATAGAAAATTTTATTTTCCCCTGCCATCCCTTACATAAGATTTTTTAAATACCTGAAAGAAAACCTTAGAGCTCTTCATTCAGTCTTTGGAAAAGCCTGATGTGAACCATCATATGGGAGGAATCAGCTGCATCTGTCATTCTTTCTTCCCATGAGTTCCCATAATTTCATTTTCTTAATATGTAGTATAGGGTGGATAGCAGTCATAATCCCCTTTTCCATCTCAAGCCAGCCCACACTCCTTAGCCTCATGCACATGACATTCCTCTTAAGTTGTGATCTGGAGAAGGCTGGAGATGTTTGCT",]
+    predicted_classes = tt.predict(sample_sequences)
+    print("Predictions:", predicted_classes)
 
 
 if __name__ == "__main__":
