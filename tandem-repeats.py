@@ -156,7 +156,8 @@ class TandemTrainer:
     def train(self,
               training_args=TrainingArguments(
                                 seed=42,
-                                output_dir=".",
+                                output_dir="./results",
+                                logging_strategy="epoch",
                                 per_device_train_batch_size=16,
                                 evaluation_strategy="epoch",
                                 learning_rate=0.000001,
@@ -172,6 +173,38 @@ class TandemTrainer:
             args=training_args,
         )
         trainer.train()
+
+    def predict(self, sequences):
+        self.model.eval()  # Set model to evaluation mode
+        inputs = self.tokenizer(
+            sequences,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=self.tokenizer.model_max_length,
+        )
+
+        # Detect model device
+        device = next(self.model.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            logits = outputs.logits
+            predictions = torch.argmax(logits, dim=-1)
+
+        return predictions.tolist()
+
+    def save_model(self, path="./results"):
+        self.model.save_pretrained(path)
+        self.tokenizer.save_pretrained(path)
+
+    def load_trained_model(self, path="./results"):
+        """
+        Loads a previously trained model and tokenizer from the given directory.
+        """
+        self.model = AutoModelForSequenceClassification.from_pretrained(path)
+        self.tokenizer = AutoTokenizer.from_pretrained(path)
 
 
 def main():
