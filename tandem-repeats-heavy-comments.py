@@ -1,9 +1,6 @@
 """
 GROVER DNA Classifier – Student‑Friendly, Heavily Commented Version
 =================================================================
-This file is a line‑by‑line commented rewrite of the code you shared. The goal is to help a new
-student understand each step of the pipeline while keeping your original structure and behavior.
-
 What it does (high level)
 -------------------------
 1) Reads two sources of sequences:
@@ -30,7 +27,7 @@ Dependencies
 
 Run
 ---
-python this_file.py
+python tandem-repeats-heavy-comments.py
 
 """
 from __future__ import annotations
